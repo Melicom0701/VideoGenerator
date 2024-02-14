@@ -1,7 +1,14 @@
 const express = require ('express')
 const router = express.Router()
-//const {videoUpload } = require('../controllers/video.controller')
-//router.post("/videoUpload")
+
+
+const videoRoute = require('./video.route')
+
+
+
+
+router.use('/video',videoRoute)
+
 
 
 router.get("/", (req, res) => {
