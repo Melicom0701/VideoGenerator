@@ -1,15 +1,29 @@
 //const media = require('../src/services/video')
+require('dotenv').config();
 const speech = require('../src/services/speech')
 const fs = require('fs');
+const downloader = require('../src/services/downloader');
 const media = require('../src/services/media');
-//const videoPaths = ['https://melicom.blob.core.windows.net/videos/video-1707456874278.webm','https://melicom.blob.core.windows.net/videos/video-1707456812717.webm'];
-const videoPaths = [ './tmp/video_1.mp4', './tmp/video_2.mp4' ]
+const {PerformSearch} = require('../src/services/AISearch');
+const {textToVideo} = require('../src/services/textToVideo');
+const videoPaths = ['https://hmelicom.blob.core.windows.net/videos/video-1707906581769.mp4','https://hmelicom.blob.core.windows.net/videos/video-1707906590446.mp4'];
+//const videoPaths = [ './tmp/video_1.mp4', './tmp/video_2.mp4' ]
 
 //console.log(media.mergeVideo(videoPaths)) ;
 // media.getVideoDuration(videoPaths[0]).then((duration) => {
 //     console.log(duration);
 // }
 // );
+
+// downloader.downloadVideos(videoPaths).then((videoPaths) => {
+//     console.log(videoPaths);
+// });
+
+// PerformSearch('Chiến Tranh Điện Biên Phủ').then((result) => {
+//     console.log(result);
+// });
+
+
 const script = {
     "Title": "Chiến Tranh Điện Biên Phủ",
     "Script": [
@@ -52,41 +66,10 @@ const script = {
     ]
   }
  
+textToVideo(script)
+  
 
-async function createAudioFromScript(script) {
-    const output =  script.Script.map(async (item, index) => {
-    const path = `./tmp/${index}.mp3`;
-    await speech.TTS(item.text,path);
-      
-  //  return mp3;
-    }
-    );
-    Promise.all(output).then(() => {
-        console.log('all done')
-
-        }
-        );
-
-
-  //  console.log(output);
-
-
-}
-async function AzcreateAudioFromScript(script) {
-    const output =  script.Script.map(async (item, index) => {
-    const path = `./tmp/${index}.mp3`;
-    await speech.AzureTTS(item.text,path);
-      
-  //  return mp3;
-    }
-    );
-    Promise.all(output).then(() => {
-        console.log('Oke done')
-
-        }
-        );
-}
 
 
 //AzcreateAudioFromScript(script);
-media.Merge('./tmp/video_1.mp4','./tmp/0.mp3','./tmp/output.mp4');
+// media.Merge('./tmp/video_1.mp4','./tmp/0.mp3','./tmp/output.mp4');
