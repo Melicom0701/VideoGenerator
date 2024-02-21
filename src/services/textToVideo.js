@@ -75,9 +75,8 @@ async function textToVideo(script) {
   });   
   
    
-    Promise.all(videoAudioPath).then((videoAudioPath) => {
+    const Result = await Promise.all(videoAudioPath).then((videoAudioPath) => {
         const containerName = process.env.HANDLED_CONTAINER;
-        console.log(videoAudioPath);
         //upload to blob storage
         const videoAudioPathBlob = videoAudioPath.map(async (path, index) => {
             const output = `video_audio_${index}.mp4`;
@@ -85,12 +84,14 @@ async function textToVideo(script) {
             const cloudDir = await uploadToBlobStorage(stream, containerName,output);
             return cloudDir.url;
         });
-        Promise.all(videoAudioPathBlob).then((videoAudioPathBlob) => {
+        return Promise.all(videoAudioPathBlob).then((videoAudioPathBlob) => {
             console.log(videoAudioPathBlob);
+            return videoAudioPathBlob;
         });
-      //  console.log(videoAudioPathBlob);
+        
     });
-    
+    console.log(Result);
+    return Result;
 }
 
 
