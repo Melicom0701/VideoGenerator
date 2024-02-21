@@ -5,7 +5,7 @@ const path = require("path");
 const sdk = require("microsoft-cognitiveservices-speech-sdk");
 const exec = require('util').promisify(require('child_process').exec);
 const openai = new OpenAI({
-	apiKey: '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',
+	apiKey: process.env.OPENAIKEY,
 });
 const _output = path.resolve("./output.mp3");
 

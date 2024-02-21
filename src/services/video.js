@@ -13,35 +13,6 @@ if (!fs.existsSync(downloadDir)) {
     fs.mkdirSync(downloadDir);
 }
 
-async function downloadFile(url, filePath) {
-    const response = await axios({
-        method: 'GET',
-        url: url,
-        responseType: 'stream',
-    });
-
-    const writer = fs.createWriteStream(filePath);
-
-    return new Promise((resolve, reject) => {
-        response.data.pipe(writer);
-        writer.on('finish', resolve);
-        writer.on('error', reject);
-    });
-}
-
-async function downloadVideos(videoPaths) {
-    const downloadedPaths = await Promise.all(videoPaths.map(async (path, index) => {
-        const fileName = `video_${index + 1}.mp4`;
-        const downloadPath = path.join(downloadDir, fileName);
-        await downloadFile(path, downloadPath);
-        return downloadPath;
-    }));
-
-    console.log(downloadedPaths);
-    return downloadedPaths;
-}
-
-
 
 const videoEncoder = 'h264';
 const outputfile = 'output.mp4';
@@ -70,7 +41,7 @@ async function addAudioToVideo(videoPath, audioPath) {
 
 }
 
-async function mergeVideo (videoPaths) {
+async function mergeVideo (videoPaths,outputPath) {
 
 
     let mergeList = ''; 
@@ -78,16 +49,16 @@ async function mergeVideo (videoPaths) {
         mergeList += `${path}|`;
     });
     mergeList = mergeList.slice(0, -1);
-
+    console.log(mergeList)
+    
     try {        
         const command = `ffmpeg \
                             -i "concat:${mergeList}" \
                             -c:a copy \
                             -c:v copy \
-                            ./tmp/output.avi
+                            ${outputPath}
                             `;
-        console.log(command)
-
+        console.log('executing command:', command)
         exec(command, (error, stdout, stderr) => {
             if (error) {
               console.error(`Error: ${error.message}`);
@@ -100,6 +71,7 @@ async function mergeVideo (videoPaths) {
     } catch (error) {
         console.error('Error:', error);
     }
+
 }
 
 async function getVideoDuration(videoPath) {
@@ -123,5 +95,5 @@ async function lengthenTheVideo(videoPath, duration) {
     return outputPath;
 }
 
-module.exports = {getVideoDuration, mergeVideo, downloadVideos };
+module.exports = {getVideoDuration, mergeVideo };
 

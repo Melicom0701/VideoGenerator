@@ -11,4 +11,5 @@ async function uploadToBlobStorage(stream,containerName, fileName) {
     const url = blockBlobClient.url;
     return {url, fileName, containerName};
 }
+
 module.exports = { uploadToBlobStorage };

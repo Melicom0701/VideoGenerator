@@ -8,6 +8,7 @@ async function videoUpload(req, res) {
         const file = req.file;
         format = file.mimetype.split('/')[1];
         const description = req.body.description;
+        const type = req.body.type;
         const filename = "video-" + Date.now() + "."+format;
         stream = fs.createReadStream(file.path);
         const result = await uploadToBlobStorage(stream, containerName, filename);
@@ -21,8 +22,8 @@ async function videoUpload(req, res) {
         //description
         //url 
         
-        const query = `INSERT INTO Videos(description,url)
-                        VALUES (N'${description}','${result.url}')`
+        const query = `INSERT INTO Videos(description,url,type)
+                        VALUES (N'${description}','${result.url}',N'${type}')`
 
         pool.request()
         .query(query)

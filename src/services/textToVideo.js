@@ -4,51 +4,11 @@ const util = require('util')
 const tmpDir = './tmp/';
 const media = require('./media');
 const speech = require('./speech');
+const AISearch = require('./AISearch');
 const exec = util.promisify(require('child_process').exec);
-
-const script = {
-  "Title": "Chiến Tranh Điện Biên Phủ",
-  "Script": [
-    {
-      "text": "Trong thời kỳ chiến tranh Đông Dương, khi mọi góc phố Hà Nội đều tràn ngập bản hùng ca của lòng yêu nước, có một chiến trường lớn đang chờ đợi sự quay đầu của lịch sử - Điện Biên Phủ."
-    },
-    {
-      "text": "Cuộc chiến tranh này nổ ra giữa Việt Minh, lực lượng dưới sự lãnh đạo của Chủ tịch Hồ Chí Minh, và quân đội Pháp, những người muốn giữ lại thuộc địa của họ."
-    },
-    {
-      "text": "Điện Biên Phủ, một thành phố nhỏ ở tây bắc Việt Nam, trở thành trung tâm của một cuộc đối đầu đầy gian truân."
-    },
-    {
-      "text": "Tại Điện Biên Phủ, quân Pháp đã xây dựng các đồn cứ mạnh mẽ, hy vọng sẽ ngăn chặn sự tiến công của Việt Minh. Các đồn cứ này được đặt tên theo các điểm địa danh nổi tiếng của Pháp như A1, Beatrice, Gabrielle và một số nơi khác."
-    },
-    {
-      "text": "Vào tháng 3 năm 1954, cuộc chiến bắt đầu. Các binh sĩ Việt Minh, được dẫn đầu bởi tướng Võ Nguyên Giáp, đã chứng minh sự tài năng chiến thuật của mình."
-    },
-    {
-      "text": "Họ sử dụng đường hầm và bảo vệ những con đường logistik của quân Pháp, tạo nên những chiến thuật tấn công đầy sáng tạo."
-    },
-    {
-      "text": "Nếu bạn đứng trên đỉnh đồi, bạn có thể thấy những tên binh Việt Minh tự tin đánh bại quân Pháp từ các hướng khác nhau. Họ là những người lính quả cảm, chấp nhận gặp khó khăn để bảo vệ tổ quốc."
-    },
-    {
-      "text": "Cuộc chiến diễn ra trong điều kiện khắc nghiệt với thời tiết xấu và địa hình đồi núi phức tạp. Tuy nhiên, lòng quyết tâm và sự đoàn kết của những người lính Việt Minh đã vượt qua mọi thách thức."
-    },
-    {
-      "text": "Trong những ngày cuối cùng của tháng 4 và đầu tháng 5 năm 1954, cuộc chiến đã đến hồi kết. Những đồn cứ Pháp bắt đầu suy yếu và chấp nhận sự thật rằng họ không thể chống lại sức mạnh của những người lính Việt Nam dũng cảm."
-    },
-    {
-      "text": "Ngày 7 tháng 5 năm 1954, quân Việt Minh chiếm lấy Điện Biên Phủ, mở ra một trang mới trong lịch sử Việt Nam và chấm dứt cuộc chiến tranh Đông Dương."
-    },
-    {
-      "text": "Hiệp định Geneva sau đó được ký kết, chia cắt đất nước thành hai miền Bắc và Nam. Chiến thắng Điện Biên Phủ không chỉ là một chiến thắng về mặt quân sự mà còn là biểu tượng của lòng yêu nước và tinh thần đoàn kết của nhân dân Việt Nam."
-    },
-    {
-      "text": "Những người lính Việt Minh đã chứng minh rằng sự đoàn kết và quyết tâm có thể vượt qua mọi thử thách, để bảo vệ tự do và độc lập."
-    }
-  ]
-}
-
-
+const downloader = require('./downloader');
+const video = require('./video');
+const { uploadToBlobStorage } = require('../config/blob');
 async function textToVideo(script) {
   let slider = [];
   let audio = [];
@@ -63,13 +23,76 @@ async function textToVideo(script) {
     await speech.AzureTTS(item.text, path)
     audio.push(path);
     const audioDuration = await speech.getAudioDuration(path);
-   // console.log(audioDuration);
     slider.push(audioDuration);
   }
 
-  console.log({slider,audio})
 
+  let mapper = {};
+  let downloadItem = [];
+  for await (let [index, item] of script.Script.entries())
+  {
+    const searchItem = await AISearch.PerformSearch(item.text);
+    if (searchItem.length == 1) {
+      mapper[searchItem[0].id] = parseInt(1);
+      downloadItem[index] = searchItem[0].url;
+    }
+    if (searchItem.length > 1) {
+      console.log(searchItem)
+      //select the item that least appear in the mapper
+      let min = 100000;
+      let minIndex = 0;
+      for (let i = 0; i < searchItem.length; i++) {
+        let id = searchItem[i].video_id;
+        if (mapper[id] == undefined) {
+          mapper[id] = parseInt(1);
+          downloadItem[index] = searchItem[i].url;
+          break;
+        }
+        if (mapper[id] < min) {
+          min = mapper[id];
+          minIndex = i;
+        }
+        mapper[searchItem[minIndex].video_id] = parseInt(mapper[searchItem[minIndex].video_id]) + 1;
+        downloadItem[index] = searchItem[minIndex].url;
+      }
+    }
+    if (searchItem.length == 0) {
+      downloadItem[index] = 'https://kmelicom.blob.core.windows.net/videos/Blank Video.mp4';
+    }
+   
+
+  }
+  const videoPaths = await downloader.downloadVideos(downloadItem);
+
+
+  const videoAudioPath = videoPaths.map(async (path, index) => {
+    const output = `tmp/video_audio_${index}.mp4`;
+    if (fs.existsSync(output)) {
+      fs.unlinkSync(output);
+    }
+    await media.Video_Audio(path, audio[index], output);
+    return output;
+  });   
+  
+   
+    Promise.all(videoAudioPath).then((videoAudioPath) => {
+        const containerName = process.env.HANDLED_CONTAINER;
+        console.log(videoAudioPath);
+        //upload to blob storage
+        const videoAudioPathBlob = videoAudioPath.map(async (path, index) => {
+            const output = `video_audio_${index}.mp4`;
+            const stream = fs.ReadStream(path);
+            const cloudDir = await uploadToBlobStorage(stream, containerName,output);
+            return cloudDir.url;
+        });
+        Promise.all(videoAudioPathBlob).then((videoAudioPathBlob) => {
+            console.log(videoAudioPathBlob);
+        });
+      //  console.log(videoAudioPathBlob);
+    });
+    
 }
+
 
 
 module.exports = {textToVideo};
