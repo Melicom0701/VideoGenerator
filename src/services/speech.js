@@ -1,9 +1,9 @@
 require("dotenv").config();
 const fs = require("fs");
-const OpenAI = require("openai");
 const path = require("path");
 const sdk = require("microsoft-cognitiveservices-speech-sdk");
 const exec = require('util').promisify(require('child_process').exec);
+const OpenAI = require("openai");
 const openai = new OpenAI({
 	apiKey: process.env.OPENAIKEY,
 });
